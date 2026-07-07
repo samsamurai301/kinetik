@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { DragEngine } from './engine.js'
+import type { Id } from './types.js'
 import { restrictToHorizontalAxis } from '../modifiers/index.js'
 
 /**
@@ -185,8 +186,8 @@ describe('engine advanced', () => {
       engine.registerDraggable('a', a, 'list')
       engine.registerDraggable('b', b, 'list')
 
-      let last: string[] = []
-      engine.on('onNeighborsChange', (ids: string[]) => { last = ids })
+      let last: Id[] = []
+      engine.on('onNeighborsChange', (ids) => { last = ids })
 
       beginDragOn(engine, 'a', 0, 0)
       firePointer(document, 'pointermove', 100, 0)

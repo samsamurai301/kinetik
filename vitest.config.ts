@@ -14,9 +14,7 @@ export default defineConfig({
     // Each test is still isolated via afterEach cleanup hooks — verified safe.
     isolate: false,
     pool: 'threads',
-    poolOptions: {
-      threads: { singleThread: true },
-    },
+    threads: { singleThread: true },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],

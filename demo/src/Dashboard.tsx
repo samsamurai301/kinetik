@@ -61,7 +61,7 @@ export function Dashboard() {
 
   return (
     <DndContext
-      onDragStart={({ active }) => handleDragStart(String(active.id))}
+      onDragStart={(id) => handleDragStart(String(id))}
       onDragEnd={handleDragEnd}
     >
       <div className="dashboard-demo">

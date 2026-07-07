@@ -14,20 +14,27 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react'
 import { DragEngine, type EngineOptions } from '../core/engine.js'
 import type { Id } from '../core/types.js'
+import type { DragState } from '../core/types.js'
 import type { Modifier } from '../modifiers/index.js'
 
 /** Public result of a drag. */
 export interface DragEndEvent {
-  active: Id
+  active: { id: Id }
   /** The top collision. For action droppables, this will be the action key. */
-  over: Id | null
+  over: { id: Id } | null
+  /** Optional parsed action payload when `over.id` is encoded as `action:<action-id>`. */
+  overAction?: { id: string }
 }
+
+export type DragEndEventLegacy = (activeId: Id, overId: Id | null) => void
+export type DragEndEventHandler = ((event: DragEndEvent) => void) | DragEndEventLegacy
 
 export interface DndContextProps {
   children: ReactNode
   onDragStart?: (id: Id) => void
-  onDragEnd?: (event: DragEndEvent) => void
+  onDragEnd?: DragEndEventHandler
   onDragCancel?: (id: Id) => void
+  onDragMove?: (state: DragState) => void
   /** Engine tuning. Sensible defaults for almost everyone. */
   activationDistance?: number
   autoScroll?: boolean
@@ -47,17 +54,36 @@ const EngineContext = createContext<DragEngine | null>(null)
  * Provide a drag engine to children. Wrap your app once. Multiple providers
  * can coexist for independent drag regions (each gets its own engine).
  */
-export function DndContext({ children, onDragStart, onDragEnd, onDragCancel, ...rest }: DndContextProps) {
+export function DndContext({ children, onDragStart, onDragEnd, onDragCancel, onDragMove, ...rest }: DndContextProps) {
   // Refs for the latest callbacks so the engine (created once) sees them.
   const startRef = useRef(onDragStart)
   const endRef = useRef(onDragEnd)
   const cancelRef = useRef(onDragCancel)
+  const moveRef = useRef(onDragMove)
   startRef.current = onDragStart
   endRef.current = onDragEnd
   cancelRef.current = onDragCancel
+  moveRef.current = onDragMove
 
   const optsRef = useRef(rest)
   optsRef.current = rest
+
+  const emitDragEnd = (state: { activeId: Id | null; overId: Id | null }) => {
+    const cb = endRef.current
+    if (!cb) return
+    const activeId = state.activeId
+    if (activeId == null) return
+    const payload: DragEndEvent = {
+      active: { id: activeId },
+      over: state.overId == null ? null : { id: state.overId },
+      overAction: parseOverAction(state.overId),
+    }
+    if (cb.length >= 2) {
+      ;(cb as DragEndEventLegacy)(activeId, state.overId)
+      return
+    }
+    ;(cb as (event: DragEndEvent) => void)(payload)
+  }
 
   const engine = useMemo(
     () =>
@@ -67,7 +93,8 @@ export function DndContext({ children, onDragStart, onDragEnd, onDragCancel, ...
         get autoScroll() { return optsRef.current.autoScroll ?? true },
         get collisionStrategy() { return optsRef.current.collisionStrategy },
         onDragStart: (id) => startRef.current?.(id),
-        onDragEnd: (s) => endRef.current?.({ active: s.activeId!, over: s.overId }),
+        onDragEnd: (s) => emitDragEnd(s),
+        onDragMove: (s) => moveRef.current?.(s),
         onDragCancel: (s) => cancelRef.current?.(s.activeId!),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,4 +126,13 @@ export function useEngine(): DragEngine {
 export function useDragState() {
   const engine = useEngine()
   return useSyncExternalStore(engine.subscribe, engine.getState, engine.getState)
+}
+
+function parseOverAction(overId: Id | null): { id: string } | undefined {
+  if (overId == null) return undefined
+  const asString = String(overId)
+  if (!asString.startsWith('action:')) return undefined
+  const action = asString.slice('action:'.length).trim()
+  if (!action) return undefined
+  return { id: action }
 }

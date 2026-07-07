@@ -4,7 +4,6 @@ import {
   restrictToVerticalAxis,
   restrictToWindowEdges,
   snapToGrid,
-  initialRect,
   setInitialRect,
 } from './index.js'
 

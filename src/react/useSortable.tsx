@@ -16,7 +16,7 @@
  *   }
  */
 
-import { useCallback, useEffect, useRef, useContext, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode, type ReactElement } from 'react'
 import { useEngine, useDragState } from './DndContext.js'
 import { ContainerProvider, useNearestContainerId } from './ContainerContext.js'
 import { useKeyboardSensor } from './useKeyboardSensor.js'
@@ -24,7 +24,7 @@ import { captureFlip } from '../core/animator.js'
 import type { Id } from '../core/types.js'
 
 /** Hook for the container element of a sortable list. Pass the current items. */
-export function useSortableContainer<T extends Id = Id>(id: Id, items: T[]) {
+export function useSortableContainer<T extends Id = Id>(id: Id, items: T[] = []) {
   const engine = useEngine()
   const ref = useRef<HTMLElement | null>(null)
   const itemsRef = useRef<Id[]>(items)
@@ -65,7 +65,7 @@ export function SortableContext({
   id: Id
   items: Id[]
   children: ReactNode
-}): JSX.Element {
+}): ReactElement {
   const { setNodeRef, containerId } = useSortableContainer(id, items)
   return (
     <div ref={setNodeRef as any} data-container-id={String(id)} style={{ display: 'contents' }}>
@@ -80,6 +80,8 @@ export interface UseSortableOptions<T extends Id = Id> {
   disabled?: boolean
   /** Container this item belongs to. Optional — inferred from parent if not set. */
   containerId?: Id
+  /** Optional explicit ARIA label for screen readers. */
+  ariaLabel?: string
 }
 
 export interface UseSortableReturn {
@@ -90,7 +92,12 @@ export interface UseSortableReturn {
   style: CSSProperties
 }
 
-export function useSortable<T extends Id = Id>({ id, disabled, containerId }: UseSortableOptions<T>): UseSortableReturn {
+export function useSortable<T extends Id = Id>({
+  id,
+  disabled,
+  containerId,
+  ariaLabel,
+}: UseSortableOptions<T>): UseSortableReturn {
   const engine = useEngine()
   const state = useDragState()
   const elRef = useRef<HTMLElement | null>(null)
@@ -148,6 +155,7 @@ export function useSortable<T extends Id = Id>({ id, disabled, containerId }: Us
     attributes: {
       'data-sortable-id': id,
       'aria-roledescription': 'sortable item',
+      'aria-label': ariaLabel ?? `Sortable item ${String(id)}`,
       tabIndex: disabled ? -1 : 0,
       role: 'listitem',
     },

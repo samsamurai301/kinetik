@@ -21,6 +21,7 @@ import {
   useDroppable,
 } from '../src/index.js'
 import { firePointer, waitFrames } from './helpers.js'
+import type { Id } from '../src/core/types.js'
 
 afterEach(() => { document.body.innerHTML = '' })
 
@@ -56,9 +57,11 @@ describe('Sortable list', () => {
       return (
         <DndContext
           onDragEnd={({ active, over }) => {
-            if (over && active !== over) {
-              onReorder(active, over)
-              setItems((prev) => arrayMove(prev, active, over))
+            if (over && active.id !== over.id) {
+              const a = String(active.id)
+              const b = String(over.id)
+              onReorder(a, b)
+              setItems((prev) => arrayMove(prev, a, b))
             }
           }}
         >
@@ -119,7 +122,7 @@ describe('Multi-container (kanban)', () => {
         <DndContext
           onDragEnd={({ active, over }) => {
             if (!over) return
-            setCols((prev) => moveCard(prev, active, over))
+            setCols((prev) => moveCard(prev, active.id, over.id))
           }}
         >
           <Column id="todo" items={cols.todo} />
@@ -211,21 +214,26 @@ function arrayMove<T>(array: T[], from: T, to: T): T[] {
   return next
 }
 
-function moveCard(cols: Record<string, string[]>, active: string, over: string): Record<string, string[]> {
-  let from: string | null = null
-  for (const [k, v] of Object.entries(cols)) {
-    if (v.includes(active)) { from = k; break }
-  }
-  if (!from) return cols
+function moveCard<T extends Record<string, string[]>>(cols: T, active: Id, over: Id): T {
+  const activeId = String(active)
+  const overId = String(over)
+  const fromColumn = Object.entries(cols).find(([, v]) => v.includes(activeId))
+  if (!fromColumn) return cols
+  const [from, items] = fromColumn
   const next: Record<string, string[]> = { ...cols }
-  next[from] = cols[from].filter((c) => c !== active)
-  const overCol = Object.entries(cols).find(([, v]) => v.includes(over))?.[0]
+  next[from] = items.filter((c) => c !== activeId)
+  const overCol = Object.entries(cols).find(([, v]) => v.includes(overId))?.[0]
   if (overCol) {
-    next[overCol] = [...cols[overCol]]
-    const idx = next[overCol].indexOf(over)
-    next[overCol].splice(idx + 1, 0, active)
+    const toColumn = [...(cols[overCol] ?? [])]
+    const idx = toColumn.indexOf(overId)
+    if (idx === -1) {
+      toColumn.push(activeId)
+    } else {
+      toColumn.splice(idx + 1, 0, activeId)
+    }
+    next[overCol] = toColumn
   } else {
-    next[over] = [active]
+    next[overId] = [activeId]
   }
-  return next
+  return next as T
 }

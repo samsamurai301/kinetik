@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { DndContext, DragOverlay, useDraggable, useDroppable, closestCenterStrategy } from 'kinetik'
+import {
+  CollisionStrategy,
+  DndContext,
+  DragOverlay,
+  Rect,
+  closestCenterStrategy,
+  rectIntersectionStrategy,
+  useDraggable,
+  useDroppable,
+  useEngine,
+} from 'kinetik'
 
 type Card = { id: string; title: string }
 
@@ -29,33 +39,46 @@ const columnTitles: Record<string, string> = {
 export function Kanban(): JSX.Element {
   const [columns, setColumns] = useState(initial)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [dragCursor, setDragCursor] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
 
   return (
     <DndContext
-      collisionStrategy={closestCenterStrategy}
-      onDragStart={(id) => setActiveId(String(id))}
+      collisionStrategy={kanbanCollisionStrategy}
+      onDragStart={(id) => {
+        setActiveId(String(id))
+        setIsDragging(true)
+      }}
+      onDragMove={(state) => {
+        setDragOverId(state.overId == null ? null : String(state.overId))
+        setDragCursor(state.currentCursor)
+      }}
       onDragEnd={({ active, over }) => {
+        const aId = String(active.id)
         if (over == null) {
           setActiveId(null)
+          setDragOverId(null)
+          setIsDragging(false)
           return
         }
-        const aId = String(active)
-        const oId = String(over)
         setColumns((prev) => {
           const next = { ...prev }
           const sourceCol = findColumn(prev, aId)
-          const targetCol = findColumn(prev, oId)
-          if (!sourceCol || !targetCol) return prev
-          const card = prev[sourceCol]!.find((c) => c.id === aId)!
+          if (!sourceCol) return prev
+          const card = prev[sourceCol]!.find((c) => c.id === aId)
+          if (!card) return prev
+          const targetCol = resolveTargetColumn(prev, String(over.id))
+          if (!targetCol) return prev
           if (sourceCol === targetCol) {
             const items = next[sourceCol]!.filter((c) => c.id !== aId)
-            const overIndex = items.findIndex((c) => c.id === oId)
+            const overIndex = items.findIndex((c) => c.id === String(over.id))
             items.splice(overIndex >= 0 ? overIndex + 1 : items.length, 0, card)
             next[sourceCol] = items
           } else {
             const sourceItems = next[sourceCol]!.filter((c) => c.id !== aId)
             const targetItems = next[targetCol]!.slice()
-            const overIndex = targetItems.findIndex((c) => c.id === oId)
+            const overIndex = targetItems.findIndex((c) => c.id === String(over.id))
             targetItems.splice(overIndex >= 0 ? overIndex + 1 : targetItems.length, 0, card)
             next[sourceCol] = sourceItems
             next[targetCol] = targetItems
@@ -63,12 +86,27 @@ export function Kanban(): JSX.Element {
           return next
         })
         setActiveId(null)
+        setDragOverId(null)
+        setIsDragging(false)
       }}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={() => {
+        setActiveId(null)
+        setDragOverId(null)
+        setIsDragging(false)
+      }}
     >
       <div className="kanban">
         {Object.entries(columns).map(([colId, cards]) => (
-          <Column key={colId} id={colId} title={columnTitles[colId]!} cards={cards} />
+          <Column
+            key={colId}
+            id={colId}
+            title={columnTitles[colId]!}
+            cards={cards}
+            dragOverId={dragOverId}
+            dragCursor={dragCursor}
+            isDragging={isDragging}
+            activeDragId={activeId}
+          />
         ))}
       </div>
       <DragOverlay>
@@ -80,24 +118,107 @@ export function Kanban(): JSX.Element {
   )
 }
 
-function Column({ id, title, cards }: { id: string; title: string; cards: Card[] }) {
+const kanbanCollisionStrategy: CollisionStrategy = ({
+  activeRect,
+  activeId,
+  activeContainerId,
+  containers,
+  rects,
+  previousCollision,
+}) => {
+  const itemCollisions = closestCenterStrategy({
+    activeRect,
+    activeId,
+    activeContainerId,
+    containers,
+    rects,
+    previousCollision,
+  })
+  if (itemCollisions.length > 0) return itemCollisions
+  return rectIntersectionStrategy({
+    activeRect,
+    activeId,
+    activeContainerId,
+    containers,
+    rects,
+    previousCollision,
+  })
+}
+
+function Column({
+  id,
+  title,
+  cards,
+  dragOverId,
+  dragCursor,
+  isDragging,
+  activeDragId,
+}: {
+  id: string
+  title: string
+  cards: Card[]
+  dragOverId: string | null
+  dragCursor: { x: number; y: number }
+  isDragging: boolean
+  activeDragId: string | null
+}) {
   const { setNodeRef } = useDroppable({ id, items: cards.map((c) => c.id) })
+  const engine = useEngine()
+  const columnRect = engine.getRect(id)
+  const isPointerInside = columnRect
+    ? isPointInRect(dragCursor, columnRect)
+    : false
+  const isCardOver = dragOverId != null && cards.some((card) => card.id === dragOverId)
+  const isActiveDropTarget = isDragging && (dragOverId === id || isCardOver || (!dragOverId && isPointerInside))
   return (
-    <div ref={setNodeRef} className="column" data-column-id={id}>
+    <div
+      ref={setNodeRef}
+      className={`column ${isActiveDropTarget ? 'is-over' : ''}`}
+      data-column-id={id}
+    >
       <div className="column-header">{title}</div>
-      {cards.map((card) => <CardItem key={card.id} card={card} columnId={id} />)}
+      {cards.length === 0 && isActiveDropTarget ? (
+        <div className="column-empty-slot">Drop here to place first card</div>
+      ) : null}
+      {cards.map((card) => (
+        <CardItem
+          key={card.id}
+          card={card}
+          columnId={id}
+          dragOverId={dragOverId}
+          activeDragId={activeDragId}
+          isParentDragging={isDragging}
+        />
+      ))}
     </div>
   )
 }
 
-function CardItem({ card, columnId }: { card: Card; columnId: string }) {
-  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id: card.id, containerId: columnId })
+function CardItem({
+  card,
+  columnId,
+  dragOverId,
+  activeDragId,
+  isParentDragging,
+}: {
+  card: Card
+  columnId: string
+  dragOverId: string | null
+  activeDragId: string | null
+  isParentDragging: boolean
+}) {
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
+    id: card.id,
+    containerId: columnId,
+    ariaLabel: `Move card ${card.title}`,
+  })
+  const isDropTarget = isParentDragging && dragOverId === card.id && dragOverId !== activeDragId
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="card"
+      className={`card ${isDropTarget ? 'is-over' : ''}`}
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none', cursor: 'grab' }}
     >
       {card.title}
@@ -118,4 +239,13 @@ function findCard(columns: Record<string, Card[]>, cardId: string): Card | null 
     if (found) return found
   }
   return null
+}
+
+function resolveTargetColumn(columns: Record<string, Card[]>, overId: string): string | null {
+  if (columns[overId] != null) return overId
+  return findColumn(columns, overId)
+}
+
+function isPointInRect(cursor: { x: number; y: number }, rect: Rect): boolean {
+  return cursor.x >= rect.left && cursor.x <= rect.right && cursor.y >= rect.top && cursor.y <= rect.bottom
 }

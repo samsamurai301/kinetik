@@ -35,7 +35,8 @@ describe('sortableStrategy', () => {
       rects,
       previousCollision: null,
     })
-    expect(result[0].id).toBe('a')
+    expect(result).toHaveLength(1)
+    expect(result[0]?.id).toBe('a')
   })
 
   it('excludes the active id from candidates', () => {
@@ -91,8 +92,8 @@ describe('sortableStrategy', () => {
       rects,
       previousCollision: previous,
     })
-    expect(result.length).toBe(1)
-    expect(['a', 'b']).toContain(result[0].id)
+    expect(result).toHaveLength(1)
+    expect(['a', 'b']).toContain(result[0]?.id)
   })
 
   it('returns empty for empty container', () => {

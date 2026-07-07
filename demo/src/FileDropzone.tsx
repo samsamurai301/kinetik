@@ -17,8 +17,11 @@ export function FileDropzone(): JSX.Element {
     <div>
       <div
         ref={setNodeRef as any}
-        className="dropzone"
+        className={`dropzone ${isOver ? 'is-over' : ''}`}
         data-over={isOver ? 'true' : 'false'}
+        role="region"
+        tabIndex={0}
+        aria-label="Dropzone for image, PDF, and text uploads"
       >
         {isOver
           ? 'Release to drop the file(s).'

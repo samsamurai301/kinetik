@@ -25,6 +25,7 @@ export function MultiSelectList(): JSX.Element {
     'Apple', 'Banana', 'Cherry', 'Date', 'Elderberry', 'Fig', 'Grape', 'Honeydew',
   ])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
   const reorder = useViewTransition()
 
   const multi = useMultiDrag({
@@ -35,16 +36,24 @@ export function MultiSelectList(): JSX.Element {
 
   return (
     <DndContext
-      onDragStart={(id) => setActiveId(String(id))}
+      onDragStart={(id) => {
+        setActiveId(String(id))
+        setDragOverId(null)
+      }}
+      onDragMove={(state) => setDragOverId(state.overId == null ? null : String(state.overId))}
       onDragEnd={({ active, over }) => {
-        if (over != null && active !== over) {
+        setDragOverId(null)
+        if (over != null && active.id !== over.id) {
           reorder(() => {
             // For brevity: single-item move only.
           })
         }
         setActiveId(null)
       }}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={() => {
+        setActiveId(null)
+        setDragOverId(null)
+      }}
     >
       <div className="multiselect-shell">
         <div className="multiselect-summary" data-count={lastSelected.length}>
@@ -60,6 +69,8 @@ export function MultiSelectList(): JSX.Element {
             <MultiItem
               key={id}
               id={id}
+              activeDragId={activeId}
+              dragOverId={dragOverId}
               multi={multi}
               isSelected={multi.isSelected(id)}
             />
@@ -77,12 +88,20 @@ function MultiItem({
   id,
   multi,
   isSelected,
+  activeDragId,
+  dragOverId,
 }: {
   id: string
   multi: ReturnType<typeof useMultiDrag>
   isSelected: boolean
+  activeDragId: string | null
+  dragOverId: string | null
 }) {
-  const { setNodeRef, attributes, listeners } = useSortable({ id })
+  const { setNodeRef, attributes, listeners } = useSortable({
+    id,
+    ariaLabel: `Toggle or drag selection item ${id}`,
+  })
+  const isDropTarget = dragOverId === id && dragOverId !== activeDragId
   return (
     <li
       ref={setNodeRef as any}
@@ -95,7 +114,7 @@ function MultiItem({
           return
         }
       }}
-      className="multi-item"
+      className={`multi-item ${isDropTarget ? 'is-over' : ''}`}
       data-selected={isSelected}
       style={{ viewTransitionName: viewTransitionName(id) }}
     >

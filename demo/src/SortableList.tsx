@@ -25,13 +25,15 @@ interface Props {
 export function SortableList({ items: initial }: Props): JSX.Element {
   const [items, setItems] = useState(initial)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
   const reorder = useViewTransition()
 
-  const onDragEnd = ({ active, over }: { active: string | number; over: string | number | null }) => {
+  const onDragEnd = ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => {
     setActiveId(null)
-    if (over != null && active !== over) {
+    setDragOverId(null)
+    if (over != null && active.id !== over.id) {
       reorder(() => {
-        setItems((prev) => arrayMove(prev, String(active), String(over)))
+        setItems((prev) => arrayMove(prev, String(active.id), String(over.id)))
       })
     }
   }
@@ -39,11 +41,18 @@ export function SortableList({ items: initial }: Props): JSX.Element {
   return (
     <DndContext
       modifiers={[restrictToVerticalAxis]}
-      onDragStart={(id) => setActiveId(String(id))}
+      onDragStart={(id) => {
+        setActiveId(String(id))
+        setDragOverId(null)
+      }}
+      onDragMove={(state) => setDragOverId(state.overId == null ? null : String(state.overId))}
       onDragEnd={onDragEnd}
-      onDragCancel={() => setActiveId(null)}
+      onDragCancel={() => {
+        setActiveId(null)
+        setDragOverId(null)
+      }}
     >
-      <List items={items} />
+      <List items={items} activeDragId={activeId} dragOverId={dragOverId} />
       <DragOverlay>
         {activeId != null ? (
           <div className="list-item">
@@ -56,25 +65,29 @@ export function SortableList({ items: initial }: Props): JSX.Element {
   )
 }
 
-function List({ items }: { items: string[] }) {
+function List({ items, activeDragId, dragOverId }: { items: string[]; activeDragId: string | null; dragOverId: string | null }) {
   const { setNodeRef } = useSortableContainer('list', items)
   return (
     <ul ref={setNodeRef as any} className="list" data-container-id="list">
       {items.map((text) => (
-        <Item key={text} id={text} />
+        <Item key={text} id={text} activeDragId={activeDragId} dragOverId={dragOverId} />
       ))}
     </ul>
   )
 }
 
-function Item({ id }: { id: string }) {
-  const { setNodeRef, listeners, attributes, isDragging } = useSortable({ id })
+function Item({ id, activeDragId, dragOverId }: { id: string; activeDragId: string | null; dragOverId: string | null }) {
+  const { setNodeRef, listeners, attributes, isDragging } = useSortable({
+    id,
+    ariaLabel: `Move task: ${id}`,
+  })
+  const isDropTarget = dragOverId === id && dragOverId !== activeDragId
   return (
     <li
       ref={setNodeRef as any}
       {...attributes}
       {...listeners}
-      className="list-item"
+      className={`list-item ${isDragging ? 'is-dragging' : ''} ${isDropTarget ? 'is-over' : ''}`}
       data-vt-name={viewTransitionName(id)}
       style={{
         opacity: isDragging ? 0.3 : 1,

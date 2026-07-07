@@ -56,7 +56,7 @@ export function ImageGrid() {
 
   return (
     <DndContext
-      onDragStart={({ active }) => handleDragStart(String(active.id))}
+      onDragStart={(id) => handleDragStart(String(id))}
       onDragEnd={handleDragEnd}
     >
       <div className="image-grid-demo">

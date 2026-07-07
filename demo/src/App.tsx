@@ -22,6 +22,14 @@ const initialTasks = [
   'Triage the bug queue from yesterday',
   'Document the new plugin API',
 ]
+const productHighlights = [
+  'Predictive collision',
+  'Zero re-renders while dragging',
+  'Keyboard-first accessibility',
+  'View Transitions API',
+  'Physics + spring release',
+  'Cross-container reordering',
+]
 
 /**
  * App — the demo. Wraps the app in one outer DndContext so the
@@ -41,6 +49,14 @@ export function App(): JSX.Element {
             <strong>View Transitions API</strong>.
           </p>
         </header>
+
+        <section className="feature-strip" aria-label="Highlights">
+          {productHighlights.map((label) => (
+            <span className="feature-chip" key={label}>
+              {label}
+            </span>
+          ))}
+        </section>
 
         <Settings />
 

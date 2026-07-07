@@ -15,6 +15,7 @@ export interface UseDraggableOptions<T extends Id = Id> {
   id: T
   disabled?: boolean
   containerId?: Id | null
+  ariaLabel?: string
 }
 
 export interface UseDraggableReturn {
@@ -25,7 +26,12 @@ export interface UseDraggableReturn {
   style: CSSProperties
 }
 
-export function useDraggable<T extends Id = Id>({ id, disabled, containerId = null }: UseDraggableOptions<T>): UseDraggableReturn {
+export function useDraggable<T extends Id = Id>({
+  id,
+  disabled,
+  containerId = null,
+  ariaLabel,
+}: UseDraggableOptions<T>): UseDraggableReturn {
   const engine = useEngine()
   const state = useDragState()
   const elRef = useRef<HTMLElement | null>(null)
@@ -60,6 +66,7 @@ export function useDraggable<T extends Id = Id>({ id, disabled, containerId = nu
     setNodeRef,
     attributes: {
       'data-draggable-id': id,
+      'aria-label': ariaLabel ?? `Draggable ${String(id)}`,
       tabIndex: disabled ? -1 : 0,
       role: 'button',
     },

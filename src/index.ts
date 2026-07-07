@@ -17,6 +17,8 @@
 // React surface — the easy way in.
 export {
   DndContext,
+  DndContext as DndProvider,
+  DndContext as DndRoot,
   useEngine,
   useDragState,
   type DndContextProps,

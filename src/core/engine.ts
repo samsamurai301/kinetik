@@ -89,6 +89,7 @@ export class DragEngine {
   private readonly containers = new Map<Id, Container>()
   /** Reverse index: container element → container id. Updated on register/unregister. */
   private readonly elementToContainerId = new WeakMap<HTMLElement, Id>()
+  private readonly elementToId = new WeakMap<HTMLElement, Id>()
 
   // Cached rects (one entry per element, updated by ResizeObserver async).
   private readonly rects = new Map<Id, Rect>()
@@ -207,7 +208,8 @@ export class DragEngine {
   // -------------------------------------------------------------------------
 
   registerDraggable(id: Id, el: HTMLElement, containerId: Id | null, disabled = false): void {
-    if (__DEV__ && this.draggables.has(id) && this.draggables.get(id)!.el !== el) {
+    const previous = this.draggables.get(id)
+    if (__DEV__ && previous && previous.el !== el) {
       // eslint-disable-next-line no-console
       console.warn(
         `[kinetik] Draggable "${String(id)}" is registered with a new element before ` +
@@ -215,11 +217,14 @@ export class DragEngine {
         `(StrictMode?) and your cleanup isn't running. If intentional, call ` +
         `engine.unregisterDraggable("${String(id)}") first.`,
       )
+      this.ro.unobserve?.(previous.el)
+      this.elementToId.delete(previous.el)
     }
     const rect = readRect(el)
     this.draggables.set(id, { id, el, containerId, disabled, initialRect: rect, transform: { x: 0, y: 0 } })
     this.elements.set(id, el)
     this.rects.set(id, rect)
+    this.elementToId.set(el, id)
     this.ro.observe?.(el)
   }
 
@@ -228,10 +233,12 @@ export class DragEngine {
     if (!d) return
     if (d.el === el) return
     this.ro.unobserve?.(d.el)
+    this.elementToId.delete(d.el)
     d.el = el
     d.initialRect = readRect(el)
     this.elements.set(id, el)
     this.rects.set(id, d.initialRect)
+    this.elementToId.set(el, id)
     this.ro.observe?.(el)
   }
 
@@ -240,6 +247,7 @@ export class DragEngine {
     if (!d) return
     if (this.active === d) this.cancel()
     this.ro.unobserve?.(d.el)
+    this.elementToId.delete(d.el)
     this.draggables.delete(id)
     this.elements.delete(id)
     this.rects.delete(id)
@@ -259,6 +267,7 @@ export class DragEngine {
     const rect = readRect(el)
     this.containers.set(id, { id, el, rect, items, autoScroll, disabled })
     this.elementToContainerId.set(el, id)
+    this.elementToId.set(el, id)
     this.elements.set(id, el)
     this.rects.set(id, rect)
     this.ro.observe?.(el)
@@ -302,6 +311,7 @@ export class DragEngine {
     const c = this.containers.get(id)
     if (!c) return
     this.ro.unobserve?.(c.el)
+    this.elementToId.delete(c.el)
     this.elementToContainerId.delete(c.el)
     this.containers.delete(id)
     this.elements.delete(id)
@@ -908,10 +918,7 @@ export class DragEngine {
   // -------------------------------------------------------------------------
 
   private findId(el: HTMLElement): Id | undefined {
-    for (const [id, candidate] of this.elements) {
-      if (candidate === el) return id
-    }
-    return undefined
+    return this.elementToId.get(el)
   }
 
   private notify(): void {

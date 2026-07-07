@@ -39,9 +39,9 @@ describe('DndContext', () => {
 })
 
 describe('useSortableContainer + useSortable', () => {
-  it('registers container and items with the engine', () => {
-    function List() {
-      const { setNodeRef } = useSortableContainer('list')
+    it('registers container and items with the engine', () => {
+      function List() {
+      const { setNodeRef } = useSortableContainer('list', [])
       return (
         <ul ref={setNodeRef as any}>
           <Item id="a" />
@@ -58,9 +58,9 @@ describe('useSortableContainer + useSortable', () => {
     expect(document.querySelector('[data-testid="b"]')).not.toBeNull()
   })
 
-  it('marks isDragging on the active item', () => {
-    function List() {
-      const { setNodeRef } = useSortableContainer('list')
+    it('marks isDragging on the active item', () => {
+      function List() {
+      const { setNodeRef } = useSortableContainer('list', [])
       return (
         <ul ref={setNodeRef as any}>
           <Item id="a" />

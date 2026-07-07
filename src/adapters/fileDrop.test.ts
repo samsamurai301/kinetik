@@ -5,14 +5,14 @@ describe('fileDrop adapter', () => {
   it('calls onFiles when files are dropped', () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    let received: File[] | null = null
+    let receivedCount = 0
     const handle = attachFileDrop(el, {
-      onFiles: (files) => { received = files },
+      onFiles: () => { receivedCount += 1 },
     })
     const data = new DataTransfer()
     data.items.add(new File(['hello'], 'test.txt', { type: 'text/plain' }))
     el.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: data }))
-    expect(received?.length).toBe(1)
+    expect(receivedCount).toBe(1)
     handle.destroy()
   })
 
@@ -51,15 +51,15 @@ describe('fileDrop adapter', () => {
   it('respects wildcard image/* accept', () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    let received: File[] | null = null
+    let receivedCount = 0
     const handle = attachFileDrop(el, {
       accept: ['image/*'],
-      onFiles: (f) => { received = f },
+      onFiles: () => { receivedCount += 1 },
     })
     const data = new DataTransfer()
     data.items.add(new File(['x'], 'photo.png', { type: 'image/png' }))
     el.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: data }))
-    expect(received?.length).toBe(1)
+    expect(receivedCount).toBe(1)
     handle.destroy()
   })
 })
