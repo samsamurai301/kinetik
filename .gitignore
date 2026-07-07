@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+.vitest/
+.tsbuildinfo
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+ehthumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Cache
+.eslintcache
+.stylelintcache
+.cache/
+.parcel-cache/
+.turbo/
+
+# Benchmarks (heavy transient data)
+bench/*.bench.ts.bak
+
+# Demo local artifacts
+demo/dist/
+demo/node_modules/
+demo/.vite/

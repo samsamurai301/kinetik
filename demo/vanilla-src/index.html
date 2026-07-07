@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kinetik — vanilla JS demo</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .subtitle { color: #888; font-size: 13px; margin-bottom: 32px; }
+    ul { list-style: none; padding: 0; }
+    li {
+      padding: 14px 18px; border: 1px solid #ddd; border-radius: 8px;
+      background: #fff; margin-bottom: 8px; cursor: grab; user-select: none;
+      touch-action: none; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    li:active { cursor: grabbing; }
+    li.dragging { opacity: 0.4; }
+  </style>
+</head>
+<body>
+  <h1>kinetik — vanilla JS demo</h1>
+  <p class="subtitle">No framework. Just the core engine.</p>
+  <ul id="list"></ul>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

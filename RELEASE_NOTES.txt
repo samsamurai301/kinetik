@@ -1,0 +1,35 @@
+kinetik-0.1.0 — Open Source Release
+
+QUICK START:
+  1. unzip kinetik-0.1.0.zip
+  2. cd kinetik-0.1.0
+  3. npm install
+  4. npm run build
+  5. npm test
+
+CONTENTS:
+  src/         - TypeScript source (kinetik core + react adapter + modifiers + adapters)
+  test/        - Integration tests + setup
+  e2e/         - Playwright end-to-end tests
+  bench/       - Micro-benchmarks for performance measurement
+  demo/        - Interactive playground (7 examples)
+  docs/        - Migration guide from dnd-kit
+  dist/        - Pre-built UMD bundle (after npm run build)
+
+TEST STATS:
+  - 89 unit tests (vitest + happy-dom)
+  - 41 e2e tests (playwright + chromium)
+  - < 4 seconds for full unit suite
+  - < 2 minutes for e2e smoke
+
+PUBLIC API:
+  React hooks: DndContext, useSortable, useSortableContainer, useDraggable,
+               useDroppable, useMultiDrag, useKeyboardSensor, useViewTransition,
+               useFileDrop, useTextDraggable, useActionDroppable, DragOverlay
+  Core:        DragEngine, sortableStrategy, rectIntersectionStrategy,
+               closestCenterStrategy, springTo, captureFlip, modifiers
+  Vanilla:     <script type="module"> via 'kinetik/core' subpath
+
+BUNDLE: ~27 KB gzipped total, ~15 KB for typical use
+
+LICENSE: MIT (see LICENSE)

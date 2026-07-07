@@ -1,0 +1,22 @@
+# Dev / test / docs not for npm
+src/
+test/
+e2e/
+bench/
+demo/
+docs/
+*.test.ts
+*.test.tsx
+vitest.config.ts
+playwright.config.ts
+tsconfig.json
+tsconfig.build.json
+.github/
+.gitignore
+.npmignore
+.eslintrc*
+.prettierrc*
+CHANGELOG.md
+COMPARISON_AND_BREAKTHROUGHS.md
+PHASE5_DELIVERABLE.md
+bench/RESULTS.md
